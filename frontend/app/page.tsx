@@ -13,6 +13,9 @@ export default function HomePage() {
               </h1>
             </div>
             <nav className="hidden md:flex space-x-8">
+              <Link href="/characters" className="text-gray-600 hover:text-gray-900 transition-colors">
+                角色管理
+              </Link>
               <Link href="/features" className="text-gray-600 hover:text-gray-900 transition-colors">
                 功能特性
               </Link>
@@ -51,8 +54,8 @@ export default function HomePage() {
             确保每个视频中角色形象始终保持一致，提升内容质量和品牌价值。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/demo" className="btn-primary text-lg px-8 py-3">
-              立即体验
+            <Link href="/characters" className="btn-primary text-lg px-8 py-3">
+              开始创建角色
             </Link>
             <Link href="/features" className="btn-secondary text-lg px-8 py-3">
               了解更多
@@ -108,8 +111,8 @@ export default function HomePage() {
             <p className="text-lg text-gray-600 mb-8">
               加入数千名内容创作者的行列，使用AI技术提升你的内容质量
             </p>
-            <Link href="/register" className="btn-primary text-lg px-8 py-3">
-              免费注册
+            <Link href="/characters" className="btn-primary text-lg px-8 py-3">
+              立即创建角色
             </Link>
           </div>
         </div>
@@ -128,6 +131,7 @@ export default function HomePage() {
             <div>
               <h4 className="text-md font-semibold mb-4">产品</h4>
               <ul className="space-y-2 text-gray-400">
+                <li><Link href="/characters" className="hover:text-white transition-colors">角色管理</Link></li>
                 <li><Link href="/features" className="hover:text-white transition-colors">功能特性</Link></li>
                 <li><Link href="/pricing" className="hover:text-white transition-colors">价格方案</Link></li>
                 <li><Link href="/api" className="hover:text-white transition-colors">API文档</Link></li>
