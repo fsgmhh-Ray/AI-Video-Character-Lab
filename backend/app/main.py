@@ -7,33 +7,35 @@ import logging
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.api.v1.api import api_router
-from app.core.database import engine
+from app.core.database import init_db, engine
 from app.models import Base
+from app.api.v1.api import api_router
 
-# Configure logging
+# 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    """应用生命周期管理"""
+    # 启动
     logger.info("Starting up AI Video Character Lab API...")
     
-    # Create database tables
+    # 初始化数据库
     try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created successfully")
+        init_db()
+        logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error(f"Failed to create database tables: {e}")
+        logger.error(f"Failed to initialize database: {e}")
+        # 在生产环境中，这里应该退出应用
     
     yield
     
-    # Shutdown
+    # 关闭
     logger.info("Shutting down AI Video Character Lab API...")
 
 def create_application() -> FastAPI:
-    """Create and configure FastAPI application"""
+    """创建并配置FastAPI应用"""
     
     app = FastAPI(
         title=settings.APP_NAME,
@@ -45,7 +47,7 @@ def create_application() -> FastAPI:
         lifespan=lifespan
     )
     
-    # Add middleware
+    # 添加中间件
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -59,7 +61,7 @@ def create_application() -> FastAPI:
         allowed_hosts=["*"] if settings.DEBUG else ["localhost", "127.0.0.1"]
     )
     
-    # Add request timing middleware
+    # 添加请求计时中间件
     @app.middleware("http")
     async def add_process_time_header(request: Request, call_next):
         start_time = time.time()
@@ -68,7 +70,7 @@ def create_application() -> FastAPI:
         response.headers["X-Process-Time"] = str(process_time)
         return response
     
-    # Add exception handler
+    # 添加异常处理器
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
         logger.error(f"Global exception: {exc}")
@@ -77,10 +79,10 @@ def create_application() -> FastAPI:
             content={"detail": "Internal server error"}
         )
     
-    # Include API router
+    # 包含API路由
     app.include_router(api_router, prefix="/api/v1")
     
-    # Health check endpoint
+    # 健康检查端点
     @app.get("/health")
     async def health_check():
         return {
@@ -90,7 +92,7 @@ def create_application() -> FastAPI:
             "environment": settings.ENVIRONMENT
         }
     
-    # Root endpoint
+    # 根端点
     @app.get("/")
     async def root():
         return {
