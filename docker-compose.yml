@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - ai-video-network
+
+  # Backend API
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://aivideo:aivideo123@db:5432/aivideo
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RUNWAY_API_KEY=${RUNWAY_API_KEY}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - ai-video-network
+
+  # Celery Worker
+  celery:
+    build: ./backend
+    command: celery -A app.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://aivideo:aivideo123@db:5432/aivideo
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RUNWAY_API_KEY=${RUNWAY_API_KEY}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - ai-video-network
+
+  # Celery Beat (Scheduler)
+  celery-beat:
+    build: ./backend
+    command: celery -A app.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://aivideo:aivideo123@db:5432/aivideo
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - ai-video-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=aivideo
+      - POSTGRES_USER=aivideo
+      - POSTGRES_PASSWORD=aivideo123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ai-video-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-video-network
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - ai-video-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - ai-video-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  ai-video-network:
+    driver: bridge 
