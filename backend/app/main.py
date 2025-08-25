@@ -1,15 +1,14 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import time
 import logging
-from contextlib import asynccontextmanager
 
-from app.core.config import settings
-from app.core.database import init_db, engine
-from app.models import Base
-from app.api.v1.api import api_router
+from .core.database import init_db
+from .core.config import settings
+from .api.v1.api import api_router
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -18,39 +17,36 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    # 启动
+    # 启动时
     logger.info("Starting up AI Video Character Lab API...")
-    
-    # 初始化数据库
     try:
-        init_db()
+        await init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
-        # 在生产环境中，这里应该退出应用
     
     yield
     
-    # 关闭
+    # 关闭时
     logger.info("Shutting down AI Video Character Lab API...")
 
 def create_application() -> FastAPI:
     """创建并配置FastAPI应用"""
     
     app = FastAPI(
-        title=settings.APP_NAME,
+        title=settings.app_name,
         description="AI Video Character Lab - 一站式生成AI视频，并保证角色形象一致性的应用与平台",
-        version=settings.APP_VERSION,
-        docs_url="/docs" if settings.DEBUG else None,
-        redoc_url="/redoc" if settings.DEBUG else None,
-        openapi_url="/openapi.json" if settings.DEBUG else None,
+        version=settings.app_version,
+        docs_url="/docs" if settings.debug else None,
+        redoc_url="/redoc" if settings.debug else None,
+        openapi_url="/openapi.json" if settings.debug else None,
         lifespan=lifespan
     )
     
     # 添加中间件
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
+        allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -58,7 +54,7 @@ def create_application() -> FastAPI:
     
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["*"] if settings.DEBUG else ["localhost", "127.0.0.1"]
+        allowed_hosts=["*"] if settings.debug else ["localhost", "127.0.0.1"]
     )
     
     # 添加请求计时中间件
@@ -87,9 +83,9 @@ def create_application() -> FastAPI:
     async def health_check():
         return {
             "status": "healthy",
-            "app": settings.APP_NAME,
-            "version": settings.APP_VERSION,
-            "environment": settings.ENVIRONMENT
+            "app": settings.app_name,
+            "version": settings.app_version,
+            "environment": settings.environment
         }
     
     # 根端点
@@ -97,7 +93,7 @@ def create_application() -> FastAPI:
     async def root():
         return {
             "message": "Welcome to AI Video Character Lab API",
-            "version": settings.APP_VERSION,
+            "version": settings.app_version,
             "docs": "/docs",
             "health": "/health"
         }
@@ -110,8 +106,8 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "app.main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG,
+        host=settings.host,
+        port=settings.port,
+        reload=settings.debug,
         log_level="info"
     ) 

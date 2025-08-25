@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Eye } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, Upload, Sparkles, X } from 'lucide-react'
 import Link from 'next/link'
+import ImageUpload from '@/components/ImageUpload'
 
 interface Character {
   id: string
@@ -10,12 +11,15 @@ interface Character {
   description: string
   is_public: boolean
   created_at: string
+  images?: any[]
 }
 
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<Character[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
 
   useEffect(() => {
     // TODO: 从API获取角色列表
@@ -31,7 +35,8 @@ export default function CharactersPage() {
           name: '示例角色',
           description: '这是一个示例角色描述',
           is_public: false,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          images: []
         }
       ]
       setCharacters(mockCharacters)
@@ -51,6 +56,26 @@ export default function CharactersPage() {
         console.error('Failed to delete character:', error)
       }
     }
+  }
+
+  const handleUploadComplete = (images: any[]) => {
+    if (selectedCharacter) {
+      // 更新角色的图片列表
+      setCharacters(prev => prev.map(char => 
+        char.id === selectedCharacter.id 
+          ? { ...char, images: [...(char.images || []), ...images] }
+          : char
+      ))
+      
+      // 关闭上传模态框
+      setShowUploadModal(false)
+      setSelectedCharacter(null)
+    }
+  }
+
+  const openUploadModal = (character: Character) => {
+    setSelectedCharacter(character)
+    setShowUploadModal(true)
   }
 
   if (loading) {
@@ -116,6 +141,13 @@ export default function CharactersPage() {
                   </h3>
                   <div className="flex space-x-2">
                     <button
+                      onClick={() => openUploadModal(character)}
+                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      title="上传图片"
+                    >
+                      <Upload className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => {/* TODO: 编辑角色 */}}
                       className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                       title="编辑角色"
@@ -136,6 +168,28 @@ export default function CharactersPage() {
                   {character.description || '暂无描述'}
                 </p>
                 
+                {/* 角色图片预览 */}
+                {character.images && character.images.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex space-x-2 overflow-x-auto">
+                      {character.images.slice(0, 3).map((image, index) => (
+                        <div key={index} className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <img
+                            src={image.url}
+                            alt={image.filename}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                      {character.images.length > 3 && (
+                        <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-xs text-gray-500 flex-shrink-0">
+                          +{character.images.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-2">
                     <span className={`px-2 py-1 text-xs rounded-full ${
@@ -145,6 +199,14 @@ export default function CharactersPage() {
                     }`}>
                       {character.is_public ? '公开' : '私有'}
                     </span>
+                    
+                    {/* 特征向量状态 */}
+                    {character.images && character.images.length > 0 && (
+                      <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 flex items-center space-x-1">
+                        <Sparkles className="w-3 h-3" />
+                        <span>已生成特征</span>
+                      </span>
+                    )}
                   </div>
                   
                   <Link
@@ -213,6 +275,31 @@ export default function CharactersPage() {
                 创建
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 图片上传模态框 */}
+      {showUploadModal && selectedCharacter && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">
+                为角色 "{selectedCharacter.name}" 上传图片
+              </h2>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <ImageUpload
+              characterId={selectedCharacter.id}
+              onUploadComplete={handleUploadComplete}
+              maxFiles={10}
+            />
           </div>
         </div>
       )}

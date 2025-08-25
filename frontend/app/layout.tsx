@@ -1,15 +1,23 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { AuthProvider } from '@/hooks/useAuth'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'AI Video Character Lab',
-  description: '一站式生成AI视频，并保证角色形象一致性的应用与平台',
-  keywords: ['AI视频', '角色一致性', '视频生成', 'AI工具'],
-  authors: [{ name: 'AI Team' }],
+  description: '专业的AI视频生成平台，为内容创作者提供一站式解决方案',
+  keywords: 'AI视频,角色管理,视频生成,内容创作',
+  authors: [{ name: 'AI Video Character Lab Team' }],
   viewport: 'width=device-width, initial-scale=1',
+  robots: 'index, follow',
+  openGraph: {
+    title: 'AI Video Character Lab',
+    description: '专业的AI视频生成平台，为内容创作者提供一站式解决方案',
+    type: 'website',
+    locale: 'zh_CN',
+  },
 }
 
 export default function RootLayout({
@@ -20,9 +28,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50">
+        <AuthProvider>
           {children}
-        </div>
+        </AuthProvider>
       </body>
     </html>
   )
